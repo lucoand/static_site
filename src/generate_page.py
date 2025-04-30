@@ -1,8 +1,7 @@
 import os
-from os.path import isfile
 from markdown_to_html import *
 
-def generate_page(from_path: str, temlate_path: str, dest_path):
+def generate_page(basepath: str, from_path: str, temlate_path: str, dest_path):
     if not os.path.exists(from_path):
         raise Exception(f"Source markdown file {from_path} does not exist!  Aborting!")
     if not os.path.exists(temlate_path):
@@ -39,13 +38,24 @@ def generate_page(from_path: str, temlate_path: str, dest_path):
     # print(template)
     template_list = template.split("{{ Content }}")
     template = template_list[0] + html + template_list[1]
-    # print(template)
+    template = basepath_correction(basepath, template)
     print("Markdown converted to HTML.")
     print(f"Writing HTML to {dest_path}")
     with open(dest_path, 'w') as file:
         file.write(template)
     print(f"Success!")
 
+def basepath_correction(basepath: str, html: str) -> str:
+    if basepath == "/":
+        return html
+    html = find_replace(html, 'href="/', f'href="{basepath}')
+    html = find_replace(html, 'src="/', f'src="{basepath}')
+    return html
+
+def find_replace(string: str, old_substring: str, new_substring: str) -> str:
+    temp = string.split(old_substring)
+    string = new_substring.join(temp)
+    return string
 
 def generate_destination_directory(path: str):
     pathname = os.path.split(path)
@@ -59,7 +69,7 @@ def generate_destination_directory(path: str):
     return
     
 
-def generate_pages_recursive(dir_path_content: str, template_path: str, dest_dir_path: str):
+def generate_pages_recursive(basepath: str, dir_path_content: str, template_path: str, dest_dir_path: str):
     file_list = os.listdir(dir_path_content)
     # print(f"{file_list}")
     for file in file_list:
@@ -67,11 +77,11 @@ def generate_pages_recursive(dir_path_content: str, template_path: str, dest_dir
         dest_path = os.path.join(dest_dir_path, file)
         if os.path.isfile(file_path):
             dest_path = dest_path[:-2] + "html"
-            generate_page(file_path, template_path, dest_path)
+            generate_page(basepath, file_path, template_path, dest_path)
             # print(f"Source Path: {file_path}")
             # print(f"Destination Path: {dest_path}")
             continue
-        generate_pages_recursive(file_path, template_path, dest_path)
+        generate_pages_recursive(basepath, file_path, template_path, dest_path)
     return
 
 
